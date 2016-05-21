@@ -17,6 +17,10 @@
 #include "utils/utils.h"
 #include "common/common.h"
 
+unsigned char* screenBuffer;
+int screen_buf0_size = 0;
+int screen_buf1_size = 0;
+
 /* Convenience! */
 void printstr(int line, char* string) {
 	OSScreenPutFontEx(0, 0, line, string);
