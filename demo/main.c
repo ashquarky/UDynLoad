@@ -17,6 +17,8 @@
 #include "utils/utils.h"
 #include "common/common.h"
 
+#include "UDynLoad.h"
+
 unsigned char* screenBuffer;
 int screen_buf0_size = 0;
 int screen_buf1_size = 0;

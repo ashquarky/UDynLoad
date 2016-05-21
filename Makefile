@@ -35,10 +35,12 @@ SOURCES		:=	demo \
 				demo/dynamic_libs \
 				demo/fs \
 				demo/system \
-				demo/utils
+				demo/utils \
+				api
 DATA		:=	
 
-INCLUDES	:=  demo
+INCLUDES	:=  demo \
+				api
 
 #---------------------------------------------------------------------------------
 # options for code generation

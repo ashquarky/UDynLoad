@@ -23,7 +23,7 @@ int UDynLoad_CheckELF(void* elf) {
 		return UDYNLOAD_ELF_NOT_PPC;
 	}
 	
-	for (int i = 0; i < e_shnum; i++) {
+	for (int i = 0; i < elfHeader->e_shnum; i++) {
 		//section header file offset + offset of file in memory + (section header # * size of section header)
 		Elf32_Shdr* sectionHeader = (Elf32_Shdr*)(elfHeader->e_shoff + elf + (i * sizeof(Elf32_Shdr)));
 		//Is section a .dynsym?
@@ -37,5 +37,5 @@ int UDynLoad_CheckELF(void* elf) {
 }
 
 int UDynLoad_FindExport(void* elf, int isdata, char* symbol, void* address) {
-	
+	return 1;
 }
