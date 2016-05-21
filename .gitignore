@@ -1,6 +1,10 @@
-#Mac OS dust
+# Mac OS dust
 
 .DS_Store
+
+# Project-specific junk
+
+build/
 
 # Object files
 *.o
