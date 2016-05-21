@@ -1,3 +1,7 @@
+#Mac OS dust
+
+.DS_Store
+
 # Object files
 *.o
 *.ko
