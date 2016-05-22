@@ -19,7 +19,7 @@
 
 #include "UDynLoad.h"
 
-unsigned char* screenBuffer;
+// unsigned char* screenBuffer;  // Change to hard-coded offset to avoid screen shifting
 int screen_buf0_size = 0;
 int screen_buf1_size = 0;
 
@@ -77,10 +77,10 @@ int Menu_Main(void)
     screen_buf0_size = OSScreenGetBufferSizeEx(0);
     screen_buf1_size = OSScreenGetBufferSizeEx(1);
 
-    screenBuffer = MEM1_alloc(screen_buf0_size + screen_buf1_size, 0x40);
+    // screenBuffer = MEM1_alloc(screen_buf0_size + screen_buf1_size, 0x40);  // Change to hard-coded offset to avoid screen shifting
 
-    OSScreenSetBufferEx(0, screenBuffer);
-    OSScreenSetBufferEx(1, (screenBuffer + screen_buf0_size));
+    OSScreenSetBufferEx(0, (void *)0xF4000000);  // Change to hard-coded offset to avoid screen shifting
+    OSScreenSetBufferEx(1, ((void *)0xF4000000 + screen_buf0_size));  // Change to hard-coded offset to avoid screen shifting
 
     OSScreenEnableEx(0, 1);
     OSScreenEnableEx(1, 1);
@@ -107,8 +107,8 @@ int Menu_Main(void)
 		usleep(50000);
     }
 
-	MEM1_free(screenBuffer);
-	screenBuffer = NULL;
+	// MEM1_free(screenBuffer);  // Change to hard-coded offset to avoid screen shifting
+	// screenBuffer = NULL;  // Change to hard-coded offset to avoid screen shifting
 
     //!*******************************************************************
     //!                    Enter main application                        *
