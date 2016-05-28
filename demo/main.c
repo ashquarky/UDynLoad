@@ -215,9 +215,13 @@ int Menu_Main(void)
 	printstr(2, buf);
 	
 	if (elfFileBad != 0) {
-		unsigned char* elfFile = MEMBucket_alloc(elfFileSize, 4);
+		//unsigned char* elfFile = MEMBucket_alloc(elfFileSize, 4);
+		u32 ApplicationMemoryEnd;
+		asm volatile("lis %0, __CODE_END@h; ori %0, %0, __CODE_END@l" : "=r" (ApplicationMemoryEnd));
 		
-		__os_snprintf(buf, 255, "Copying %d bytes from 0x%X to 0x%X...", elfFileSize, elfFileBad, elfFile);
+		unsigned char* elfFile = (unsigned char*)(ApplicationMemoryEnd + 4); //Add 4 because I'm paranoid like that
+		
+		__os_snprintf(buf, 255, "Copying %d bytes from 0x%08X to 0x%08X...", elfFileSize, elfFileBad, elfFile);
 		printstr(3, buf);
 		
 		memcpy(elfFile, elfFileBad, elfFileSize);
@@ -231,23 +235,20 @@ int Menu_Main(void)
 		__os_snprintf(buf, 255, "ELF validator returned %d", check_elf_result);
 		printstr(6, buf);
 		
-		void* (*anotherFunction)() = &bad;
+		int (*anotherFunction)();
 		
-		int find_result = UDynLoad_FindExport(elfFile, 0, "anotherFunction", &anotherFunction);
-		__os_snprintf(buf, 255, "Func finder returned %X", find_result);
+		UDynLoad_FindExport(elfFile, 0, "anotherFunction", &anotherFunction);
+		
+		__os_snprintf(buf, 255, "Got function 0x%08X", anotherFunction);
 		printstr(7, buf);
-		__os_snprintf(buf, 255, "anotherFunction is now 0x%X", anotherFunction);
+
+		int ret = anotherFunction();
+		
+		__os_snprintf(buf, 255, "Returned 0x%08X", ret);
 		printstr(8, buf);
-		__os_snprintf(buf, 255, "0x%X %X %X %X", *((unsigned char*)anotherFunction), *((unsigned char*)anotherFunction + 1), *((unsigned char*)anotherFunction + 2), *((unsigned char*)anotherFunction + 3));
-		printstr(9, buf);
-		
-		goto *(anotherFunction);
-		
-		printstr(10, "ok");
-	
 	}
 	
-	printstr(11, "Done!");
+	printstr(11, "Done! Press HOME to quit.");
 	
     int vpadError = -1;
     VPADData vpad;
