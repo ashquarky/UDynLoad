@@ -7,8 +7,6 @@
 #ifndef _UDYNLOAD_H_
 #define _UDYNLOAD_H_
 
-#include "elf_abi.h"
-
 #define UDYNLOAD_API_VERSION 1
 
 /* Checks if a valid ELF is present at the given memory location.
@@ -21,7 +19,7 @@ int UDynLoad_CheckELF(void* elf);
 #define UDYNLOAD_ELF_NOT_ELF 1 //No ELF magic (0x7F E L F) at memory location.
 #define UDYNLOAD_ELF_NO_DYNSYM 2 //ELF does not appear to contain a .dynsym section, thus is unreadable by UDynLoad.
 #define UDYNLOAD_ELF_NOT_PPC 3 //ELF is not for PowerPC.
-#define UDYNLOAD_ELF_NOT_EXEC 4 //ELF is not executable.
+/*#define UDYNLOAD_ELF_NOT_EXEC 4 CORRECTION: Non-exectutable elves are what we DO want. */
 
 /* Almost identical to coreinit's OSDynLoad_FindExport.
  * Argument 1 (void* elf): Address of ELF in memory. Make sure to UDynLoad_CheckELF first!
@@ -30,9 +28,10 @@ int UDynLoad_CheckELF(void* elf);
  * Argument 4 (void* address): Pointer to function pointer to point function to. (Just like OSDynLoad)
  * Returns: One of the UDYNLOAD_FIND_* status codes below.
  */
-int UDynLoad_FindExport(void* elf, int isdata, char* symbol, void* address);
+int UDynLoad_FindExport(void* elf, int isdata, const char* symbol, void* address);
 
 #define UDYNLOAD_FIND_OK 0 //Found and loaded function successfully.
 #define UDYNLOAD_FIND_NOT_FOUND 1 //Could not find function in .dymsym
+#define UDYNLOAD_FIND_ERROR 2 //Other error (run CheckELF!)
 
 #endif
