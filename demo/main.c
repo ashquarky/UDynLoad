@@ -103,8 +103,8 @@ unsigned char exception_handler(void* contextIn) {
 	OSScreenClearBufferEx(0, 0);
     OSScreenClearBufferEx(1, 0);
 	
-	DCFlushRange(screenBuffer, screen_buf0_size);
-    DCFlushRange((screenBuffer + screen_buf0_size), screen_buf1_size);
+	DCFlushRange((void*)0xF4000000, screen_buf0_size);
+    DCFlushRange((void*)(0xF4000000 + screen_buf0_size), screen_buf1_size);
 	OSScreenFlipBuffersEx(0);
     OSScreenFlipBuffersEx(1);
 	
@@ -136,14 +136,14 @@ unsigned char exception_handler(void* contextIn) {
 void printstr(int line, char* string) {
 	OSScreenPutFontEx(0, 0, line, string);
 	OSScreenPutFontEx(1, 0, line, string);
-	DCFlushRange(screenBuffer, screen_buf0_size);
-    DCFlushRange((screenBuffer + screen_buf0_size), screen_buf1_size);
+	DCFlushRange((void*)0xF4000000, screen_buf0_size);
+    DCFlushRange((void*)(0xF4000000 + screen_buf0_size), screen_buf1_size);
     OSScreenFlipBuffersEx(0);
     OSScreenFlipBuffersEx(1);
 	OSScreenPutFontEx(0, 0, line, string);
 	OSScreenPutFontEx(1, 0, line, string);
-	DCFlushRange(screenBuffer, screen_buf0_size);
-    DCFlushRange((screenBuffer + screen_buf0_size), screen_buf1_size);
+	DCFlushRange((void*)0xF4000000, screen_buf0_size);
+    DCFlushRange((void*)(0xF4000000 + screen_buf0_size), screen_buf1_size);
 	OSScreenFlipBuffersEx(0);
     OSScreenFlipBuffersEx(1);
 }
