@@ -2,8 +2,6 @@
 
 An ELF dynamic loader for Wii U.
 
-Currently runs functions that don't access memory. Stack untested.
+Runs functions *if* in an ELF compiled to access memory at a certain location (No pies or pics!)
 
-The demo is a mess, this is still in heavy development. Not ready for use.
-
-***Current commit is untested! No guarantees!***
+Demo creates a DBAT and an IBAT that maps virtual 0x0 to 0x30000000 for 8MB.
