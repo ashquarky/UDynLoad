@@ -18,6 +18,7 @@
 #include "common/common.h"
 
 #include "UDynLoad.h"
+#include "kernel.h"
 
 // unsigned char* screenBuffer;  // Change to hard-coded offset to avoid screen shifting
 int screen_buf0_size = 0;
@@ -57,48 +58,7 @@ unsigned char exception_handler(void* contextIn) {
 	ancientSP = *(crashSP - 0x16); //where we're storing the old SP
 	
 	char buf[1024];
-	__os_snprintf(buf, 1024, "r0:%08X  SP:%08X  r2:%08X  r3:%08X\nr9:%08X r11:%08X r30:%08X r31:%08X\nlr:%08X slr:%08X  PC:%08X\n%s", context[2], context[3], context[4], context[5], context[11], context[13], context[32], context[33], context[35], ancientSP, context[38], buf2);
-	/*__os_snprintf(buf, 1024, "r0 :%08X r1 :%08X r2 :%08X r3 :%08X\nr4 :%08X r5 :%08X r6 :%08X r7 :%08X\nr8 :%08X r9 :%08X r10:%08X r11:%08X\nr12:%08X r13:%08X r14:%08X r15:%08X\nr16:%08X r17:%08X r18:%08X r19:%08X\nr20:%08X r21:%08X r22:%08X r23:%08X r24:%08X\nr25:%08X r26:%08X r27:%08X r28:%08X r29:%08X \nr30:%08X r31:%08X \nCR :%08X LR :%08X CTR:%08X XER:%08X\nSSR0:%08X SSR1:%08X EX0:%08X EX1:%08X\n%s", context[2],
-    context[3],
-    context[4],
-    context[5],
-    context[6],
-    context[7],
-    context[8],
-    context[9],
-    context[10],
-    context[11],
-    context[12],
-    context[13],
-    context[14],
-    context[15],
-    context[16],
-    context[17],
-    context[18],
-    context[19],
-    context[20],
-    context[21],
-    context[22],
-    context[23],
-    context[24],
-    context[25],
-    context[26],
-    context[27],
-    context[28],
-    context[29],
-    context[30],
-    context[31],
-    context[32],
-    context[33], //r31
-    context[34], //CR
-    context[35], //LR
-    context[36], //CTR
-    context[37], //XER
-    context[38], //SSR0
-    context[39], //SSR1
-    context[40], //EX0
-    context[41], //EX1
-	buf2);*/
+	__os_snprintf(buf, 1024, "r0:%08X  SP:%08X  r2:%08X  r3:%08X r9:%08X\n r10:%08X r11:%08X r30:%08X r31:%08X\nlr:%08X slr:%08X  PC:%08X\n%s", context[2], context[3], context[4], context[5], context[11], context[12], context[13], context[32], context[33], context[35], ancientSP, context[38], buf2);
 	
 	OSScreenClearBufferEx(0, 0);
     OSScreenClearBufferEx(1, 0);
@@ -215,11 +175,10 @@ int Menu_Main(void)
 	printstr(2, buf);
 	
 	if (elfFileBad != 0) {
-		//unsigned char* elfFile = MEMBucket_alloc(elfFileSize, 4);
-		u32 ApplicationMemoryEnd;
-		asm volatile("lis %0, __CODE_END@h; ori %0, %0, __CODE_END@l" : "=r" (ApplicationMemoryEnd));
+		InjectSyscall36((unsigned int)injectBAT);
+		RunSyscall36();
 		
-		unsigned char* elfFile = (unsigned char*)(ApplicationMemoryEnd + 4); //Add 4 because I'm paranoid like that
+		unsigned int* elfFile = 0x0; //DBATted to 0x30000000
 		
 		__os_snprintf(buf, 255, "Copying %d bytes from 0x%08X to 0x%08X...", elfFileSize, elfFileBad, elfFile);
 		printstr(3, buf);
@@ -235,18 +194,40 @@ int Menu_Main(void)
 		__os_snprintf(buf, 255, "ELF validator returned %d", check_elf_result);
 		printstr(6, buf);
 		
-		int (*anotherFunction)();
+		int (*anotherFunction)(int i);
 		
-		UDynLoad_FindExport(elfFile, 0, "anotherFunction", &anotherFunction);
+		int returned = UDynLoad_FindExport(elfFile, 0, "setIntegerOne", &anotherFunction);
 		
-		__os_snprintf(buf, 255, "Got function 0x%08X", anotherFunction);
+		__os_snprintf(buf, 255, "Got function 0x%08X, ret %d", anotherFunction, returned);
 		printstr(7, buf);
+	
+		__os_snprintf(buf, 255, "This is here to screw with the registers for a bit 0x%X %X %X %X %X", 11, 12, 13, 14, 15);
+		printstr(8, buf);
+		
+		int vpadError = -1;
+    VPADData vpad;
 
-		int ret = anotherFunction();
+    while(1)
+    {
+        VPADRead(0, &vpad, 1, &vpadError);
+
+        if(vpadError == 0 && ((vpad.btns_d) & VPAD_BUTTON_HOME))
+            break;
+
+		usleep(50000);
+    }
+		
+		anotherFunction(223);
+		
+		int ret = 42;
 		
 		__os_snprintf(buf, 255, "Returned 0x%08X", ret);
-		printstr(8, buf);
+		printstr(9, buf);
 	}
+	
+	printstr(10, "Removing DBAT...");
+	InjectSyscall36((unsigned int)clearBAT);
+	RunSyscall36();
 	
 	printstr(11, "Done! Press HOME to quit.");
 	
@@ -257,7 +238,7 @@ int Menu_Main(void)
     {
         VPADRead(0, &vpad, 1, &vpadError);
 
-        if(vpadError == 0 && ((vpad.btns_d | vpad.btns_h) & VPAD_BUTTON_HOME))
+        if(vpadError == 0 && ((vpad.btns_d) & VPAD_BUTTON_HOME))
             break;
 
 		usleep(50000);
@@ -270,11 +251,8 @@ int Menu_Main(void)
     //!                    Enter main application                        *
     //!*******************************************************************
 
-    log_printf("Unmount SD\n");
     unmount_sd_fat("sd");
-    log_printf("Release memory\n");
     memoryRelease();
-    log_deinit();
 
     return EXIT_SUCCESS;
 }

@@ -28,55 +28,64 @@ int UDynLoad_CheckELF(void* elf) {
 	for (int i = 0; i < elfHeader->e_shnum; i++) {
 		//section header file offset + offset of file in memory + (section header # * size of section header)
 		Elf32_Shdr* sectionHeader = (Elf32_Shdr*)(elfHeader->e_shoff + elf + (i * sizeof(Elf32_Shdr)));
-		//Is section a .dynsym?
-		if (sectionHeader->sh_type == SHT_DYNSYM) {
+		//Is section a .symtab?
+		if (sectionHeader->sh_type == SHT_SYMTAB) {
 			return UDYNLOAD_ELF_OK;
 		}
 	}
 	
 	//If we get to here, there is no .dynsym
-	return UDYNLOAD_ELF_NO_DYNSYM;
+	return UDYNLOAD_ELF_NO_SYMTAB;
 }
 
 int UDynLoad_FindExport(void* elf, int isdata, const char* symbolName, void* address) {
 	//Get ELF header
 	Elf32_Ehdr* elfHeader = (Elf32_Ehdr*)elf;
-	Elf32_Shdr* dynSym = 0;
-	Elf32_Shdr* dynStr = 0;
+	Elf32_Shdr* symTab = 0;
+	Elf32_Shdr* shstrTab = (Elf32_Shdr*)(elfHeader->e_shoff + elf + (elfHeader->e_shstrndx * sizeof(Elf32_Shdr)));
+	Elf32_Shdr* strTab = 0;
 	
 	for (unsigned int i = 0; i < elfHeader->e_shnum; i++) {
 		Elf32_Shdr* sectionHeader = (Elf32_Shdr*)(elfHeader->e_shoff + elf + (i * sizeof(Elf32_Shdr)));
-		if (sectionHeader->sh_type == SHT_DYNSYM) {
-			dynSym = sectionHeader;
+		if (sectionHeader->sh_type == SHT_SYMTAB) {
+			symTab = sectionHeader;
 		} else if (sectionHeader->sh_type == SHT_STRTAB) {
-			//AFAIK this is the only thing seperating .dynstr and .strtab/.shstrtab. Let me know if I'm wrong.
-			if (sectionHeader->sh_flags == SHF_ALLOC) { 
-				dynStr = sectionHeader;
+			char* headerName = (elf + shstrTab->sh_offset + sectionHeader->sh_name);
+			if (!strcmp(headerName, ELF_STRTAB)) {
+				strTab = sectionHeader;
 			}
 		}
 	}
 	
-	if (!dynSym) {
+	if (!symTab) {
 		return UDYNLOAD_FIND_ERROR;
-	} else if (!dynStr) {
+	} else if (!strTab) {
 		//TODO: add dynstr to CheckELF
-		return UDYNLOAD_FIND_ERROR;
+		return 69;
 	}
 	
-	for (unsigned int i = 0; i < dynSym->sh_entsize; i++) {
-		Elf32_Sym* symbol = (Elf32_Sym*)(elf + dynSym->sh_offset + (i * sizeof(Elf32_Sym)));
+	Elf32_Sym* symbol = 0;
+	
+	for (unsigned int i = 0; i <= symTab->sh_entsize; i++) {
+		Elf32_Sym* s = (Elf32_Sym*)(elf + symTab->sh_offset + (i * sizeof(Elf32_Sym)));
 		//If symbol is function...
-		if (ELF32_ST_TYPE(symbol->st_info) == STT_FUNC) {
-			char* funcName = (elf + dynStr->sh_offset + symbol->st_name);
+		if (ELF32_ST_TYPE(s->st_info) == STT_FUNC) {
+			char* funcName = (elf + strTab->sh_offset + s->st_name);
 			//strcmp is weird, this actually evaluates to if these strings ARE the same.
 			if (!strcmp(funcName, symbolName)) {
-				*(int**)(address) = (int*)(symbol->st_value + elf);
+				symbol = s;
 				break;
 			}
 		}
 		//We could theoretically elif for objects here (isdata) but I can't be bothered ;D
 		//Tell me if you want this feature
 	}
+	
+	if (!symbol) {
+		return 64;
+	}
+	
+	*((void**)address) = (void*)((Elf32_Shdr*)(elfHeader->e_shoff + elf + (symbol->st_shndx * sizeof(Elf32_Shdr))))->sh_offset;
 	
 	return UDYNLOAD_FIND_NOT_FOUND;
 }
