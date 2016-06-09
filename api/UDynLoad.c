@@ -39,6 +39,7 @@ int UDynLoad_CheckELF(void* elf) {
 }
 
 int UDynLoad_FindExport(void* elf, int isdata, const char* symbolName, void* address) {
+	*((void**)address) = 0; //Error checking for later
 	//Get ELF header
 	Elf32_Ehdr* elfHeader = (Elf32_Ehdr*)elf;
 	Elf32_Shdr* symTab = 0;
@@ -86,6 +87,8 @@ int UDynLoad_FindExport(void* elf, int isdata, const char* symbolName, void* add
 	}
 	
 	*((void**)address) = (void*)((Elf32_Shdr*)(elfHeader->e_shoff + elf + (symbol->st_shndx * sizeof(Elf32_Shdr))))->sh_offset;
-	
-	return UDYNLOAD_FIND_NOT_FOUND;
+	if (!*(void**)address) {
+		return UDYNLOAD_FIND_NOT_FOUND;
+	}
+	return UDYNLOAD_FIND_OK;
 }
