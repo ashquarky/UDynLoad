@@ -66,7 +66,7 @@ int UDynLoad_FindExport(void* elf, int isdata, const char* symbolName, void* add
 	
 	Elf32_Sym* symbol = 0;
 	
-	for (unsigned int i = 0; i <= symTab->sh_entsize; i++) {
+	for (unsigned int i = 0; i <= symTab->sh_size; i++) {
 		Elf32_Sym* s = (Elf32_Sym*)(elf + symTab->sh_offset + (i * sizeof(Elf32_Sym)));
 		//If symbol is function...
 		if (ELF32_ST_TYPE(s->st_info) == STT_FUNC) {
