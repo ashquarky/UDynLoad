@@ -86,7 +86,7 @@ int UDynLoad_FindExport(void* elf, int isdata, const char* symbolName, void* add
 		return 64;
 	}
 	
-	*((void**)address) = (void*)((Elf32_Shdr*)(elfHeader->e_shoff + elf + (symbol->st_shndx * sizeof(Elf32_Shdr))))->sh_offset;
+	*((void**)address) = (void*)(((Elf32_Shdr*)(elfHeader->e_shoff + elf + (symbol->st_shndx * sizeof(Elf32_Shdr))))->sh_offset + elf);
 	if (!*(void**)address) {
 		return UDYNLOAD_FIND_NOT_FOUND;
 	}
