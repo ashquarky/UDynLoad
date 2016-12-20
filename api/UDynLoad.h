@@ -30,6 +30,11 @@ int UDynLoad_CheckELF(void* elf);
  */
 int UDynLoad_FindExport(void* elf, int isdata, const char* symbol, void* address);
 
+/*	Same as above, except argument 2 is a pointer to the ELF's dynamic section.
+	Useful for elves without the sections used by the main FindExport.
+*/
+int UDynLoad_FindExportDynamic(void* elf, void* dynamic, const char* symbolName, void** address);
+
 #define UDYNLOAD_FIND_OK 0 //Found and loaded function successfully.
 #define UDYNLOAD_FIND_NOT_FOUND 1 //Could not find function in .dymsym
 #define UDYNLOAD_FIND_ERROR 2 //Other error (run CheckELF!)

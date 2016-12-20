@@ -8,10 +8,10 @@
 #include "UDynLoad.h"
 #include "string.h"
 #include "elf_abi.h"
- 
+
 int UDynLoad_CheckELF(void* elf) {
 	Elf32_Ehdr* elfHeader = (Elf32_Ehdr*)elf;
-	
+
 	//Is file ELF?
 	if (!IS_ELF (*elfHeader)) {
 		return UDYNLOAD_ELF_NOT_ELF;
@@ -24,7 +24,7 @@ int UDynLoad_CheckELF(void* elf) {
 	if (elfHeader->e_machine != EM_PPC) {
 		return UDYNLOAD_ELF_NOT_PPC;
 	}
-	
+
 	for (int i = 0; i < elfHeader->e_shnum; i++) {
 		//section header file offset + offset of file in memory + (section header # * size of section header)
 		Elf32_Shdr* sectionHeader = (Elf32_Shdr*)(elfHeader->e_shoff + elf + (i * sizeof(Elf32_Shdr)));
@@ -33,7 +33,7 @@ int UDynLoad_CheckELF(void* elf) {
 			return UDYNLOAD_ELF_OK;
 		}
 	}
-	
+
 	//If we get to here, there is no .dynsym
 	return UDYNLOAD_ELF_NO_SYMTAB;
 }
@@ -45,7 +45,7 @@ int UDynLoad_FindExport(void* elf, int isdata, const char* symbolName, void* add
 	Elf32_Shdr* symTab = 0;
 	Elf32_Shdr* shstrTab = (Elf32_Shdr*)(elfHeader->e_shoff + elf + (elfHeader->e_shstrndx * sizeof(Elf32_Shdr)));
 	Elf32_Shdr* strTab = 0;
-	
+
 	for (unsigned int i = 0; i < elfHeader->e_shnum; i++) {
 		Elf32_Shdr* sectionHeader = (Elf32_Shdr*)(elfHeader->e_shoff + elf + (i * sizeof(Elf32_Shdr)));
 		if (sectionHeader->sh_type == SHT_SYMTAB) {
@@ -57,16 +57,16 @@ int UDynLoad_FindExport(void* elf, int isdata, const char* symbolName, void* add
 			}
 		}
 	}
-	
+
 	if (!symTab) {
 		return UDYNLOAD_FIND_ERROR;
 	} else if (!strTab) {
 		//TODO: add dynstr to CheckELF
 		return 69;
 	}
-	
+
 	Elf32_Sym* symbol = 0;
-	
+
 	for (unsigned int i = 0; i <= symTab->sh_size; i++) {
 		Elf32_Sym* s = (Elf32_Sym*)(elf + symTab->sh_offset + (i * sizeof(Elf32_Sym)));
 		//If symbol is function...
@@ -81,14 +81,58 @@ int UDynLoad_FindExport(void* elf, int isdata, const char* symbolName, void* add
 		//We could theoretically elif for objects here (isdata) but I can't be bothered ;D
 		//Tell me if you want this feature
 	}
-	
+
 	if (!symbol) {
 		return 64;
 	}
-	
-	*((void**)address) = (void*)(((Elf32_Shdr*)(elfHeader->e_shoff + elf + (symbol->st_shndx * sizeof(Elf32_Shdr))))->sh_offset + elf);
+
+	*((void**)address) = (void*)(symbol->st_value + elf);
 	if (!*(void**)address) {
 		return UDYNLOAD_FIND_NOT_FOUND;
 	}
+	return UDYNLOAD_FIND_OK;
+}
+
+int UDynLoad_FindExportDynamic(void* elf, void* dynamic, const char* symbolName, void** address) {
+	Elf32_Dyn* dynamic_r = (Elf32_Dyn*)dynamic;
+	*address = 0;
+	void* strTab = 0;
+	Elf32_Sym* symTab = 0;
+	int i = 0;
+	while (dynamic_r[i].d_tag != DT_NULL) {
+		if (dynamic_r[i].d_tag == DT_STRTAB) {
+			strTab = (void*)(dynamic_r[i].d_un.d_ptr) + (unsigned int)elf;
+		} else if (dynamic_r[i].d_tag == DT_SYMTAB) {
+			symTab = (Elf32_Sym*)((unsigned int)(dynamic_r[i].d_un.d_ptr) + (unsigned int)elf);
+		}
+		if (strTab && symTab) break;
+		i++;
+	}
+
+	if (!strTab || !symTab) {
+		return UDYNLOAD_FIND_ERROR;
+	}
+
+	Elf32_Sym* symbol = 0;
+
+	for (i = 0;; i++) {
+		//eww.
+		if (!strcmp((char*)strTab + symTab[i].st_name, "_end")) break;
+		//If symbol is function...
+		if (ELF32_ST_TYPE(symTab[i].st_info) == STT_FUNC) {
+			char* funcName = strTab + symTab[i].st_name;
+			//strcmp is weird, this actually evaluates to if these strings ARE the same.
+			if (!strcmp(funcName, symbolName)) {
+				symbol = &(symTab[i]);
+				break;
+			}
+		}
+	}
+
+	if (!symbol) {
+		return UDYNLOAD_FIND_NOT_FOUND;
+	}
+
+	*address = (void*)(symbol->st_value + elf);
 	return UDYNLOAD_FIND_OK;
 }
